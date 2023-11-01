@@ -1,8 +1,14 @@
 namespace CleanTemplate.Redirects
 {
-    public class RedirectMockService : RedirectUrlService, IRedirectService
+    public interface IRedirectRepository
     {
-        private int _updateCount = 0;
+        List<Redirect>? QueryRedirects(int updateCount);
+    }
+
+    public class RedirectRepository : IRedirectRepository
+    {
+        private ILogger _logger;
+
         private List<Redirect> _fakeServiceResponseData = new() {
             new(){ RedirectUrl = "/moving-target", TargetUrl = "/unmoving", RedirectType=302, UseRelative = true},
             new(){ RedirectUrl = "/campaignA", TargetUrl = "/campaigns/targetcampaign" },
@@ -10,11 +16,12 @@ namespace CleanTemplate.Redirects
             new(){ RedirectUrl = "/product-directory", TargetUrl = "/products", RedirectType=301, UseRelative = true }
         };
 
-        public RedirectMockService(ILogger<RedirectMockService> logger) : base(logger)
+        public RedirectRepository(ILogger<RedirectRepository> logger) 
         {
+            _logger = logger;
         }
 
-        protected override List<Redirect>? QueryRedirects()
+        public List<Redirect>? QueryRedirects(int updateCount)
         {
             try
             {
@@ -22,19 +29,19 @@ namespace CleanTemplate.Redirects
                 
                 // To help visualize that the response changes after each update 
                 // I've added a temp redirect to a url that changes every update.
-                var movingTarget = string.Format($"/target/{_updateCount++}"); 
+                var movingTarget = string.Format($"/target/{updateCount++}"); 
                 var targetRedirect = _fakeServiceResponseData.FirstOrDefault(r => r.RedirectUrl.Equals("/moving-target"));
                 if (targetRedirect != null)
                     targetRedirect.TargetUrl = movingTarget;
 
-                if (_updateCount % 11 == 0)
+                if (updateCount % 12 == 0)
                     throw new BadHttpRequestException("Fake Error Simulation");
 
                 return response;
             }
             catch (BadHttpRequestException ex)
             {
-                this._logger.LogError("Error retrieving redirects", ex);
+                _logger.LogError("Error retrieving redirects", ex);
                 return null;
             }
         }

@@ -4,11 +4,12 @@ namespace CleanTemplate.Redirects
     {
         private Timer? _timer;
         private readonly TimeSpan _updateInterval = TimeSpan.FromSeconds(2);
-        private readonly IRedirectService _redirectService;
+        private readonly IServiceProvider _serviceProvider;
+        private int _updateCount = 0;
 
-        public RedirectUpdateService(IRedirectService service, int updateIntervalSeconds)
+        public RedirectUpdateService(IServiceProvider provider, int updateIntervalSeconds)
         {
-            _redirectService = service;
+            _serviceProvider = provider;
             _updateInterval = TimeSpan.FromSeconds(updateIntervalSeconds);
         }
 
@@ -20,7 +21,22 @@ namespace CleanTemplate.Redirects
 
         private void UpdateCache(object? _)
         {
-            _redirectService.UpdateRedirects();
+            // Redirect Service must be registered as a singleton to ensure that updates effect all threads.
+            var redirectService = _serviceProvider.GetService<IRedirectService>();
+
+            // Querying a datasource should be scoped (and disposed when the update is done).
+            using (var scope = _serviceProvider.CreateScope())
+            {
+                var redirectRepository = scope.ServiceProvider.GetService<IRedirectRepository>();
+                if (redirectRepository == null || redirectService == null)
+                    return;
+
+                var response = redirectRepository.QueryRedirects(_updateCount++);
+                if (response == null)
+                    return;
+                
+                redirectService.UpdateRedirects(response);
+            }
         }
 
         public async Task StopAsync(CancellationToken cancellationToken)

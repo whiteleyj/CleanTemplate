@@ -7,21 +7,21 @@ namespace CleanTemplate.Redirects
     {
         Redirect? GetRedirect(string redirectUrl);
 
-        void UpdateRedirects();
+        void UpdateRedirects(List<Redirect> redirects);
     }
 
     public class RedirectUrlService : IRedirectService
     {
         private ImmutableDictionary<string, Redirect> _absoluteRedirects;
         private ImmutableList<Redirect> _relativeRedirects;
-        protected ILogger _logger;
+        private ILogger _logger;
 
-        public RedirectUrlService(ILogger<RedirectMockService> logger)
+        public RedirectUrlService(ILogger<RedirectUrlService> logger)
         {
+            _logger = logger;
+
             _absoluteRedirects = ImmutableDictionary<string, Redirect>.Empty;
             _relativeRedirects = ImmutableList<Redirect>.Empty;
-            _logger = logger;
-            UpdateRedirects();
         }
 
         public Redirect? GetRedirect(string redirectUrl)
@@ -38,26 +38,17 @@ namespace CleanTemplate.Redirects
             return null;
         }
 
-        public void UpdateRedirects()
+        public void UpdateRedirects(List<Redirect> redirects)
         {
-            var response = QueryRedirects();
-            if (response == null)
-                return;
-            
-            _logger.LogInformation($"Query Redirects returns successfully with {response.Count} results.");
-
             _absoluteRedirects = ImmutableDictionary<string, Redirect>.Empty.AddRange(
-                response.Where(r => !r.UseRelative)
+                redirects.Where(r => !r.UseRelative)
                         .Select(r => new KeyValuePair<string, Redirect>(r.RedirectUrl, r)));
                 
             _relativeRedirects = ImmutableList<Redirect>.Empty.AddRange(
-                response.Where(r => r.UseRelative)
+                redirects.Where(r => r.UseRelative)
                         .OrderBy(r => r.RedirectUrl.Length)); // Return longest url that matches first.
-        }
-
-        protected virtual List<Redirect>? QueryRedirects()
-        {
-            throw new NotImplementedException();
+            
+            _logger.LogInformation($"Query Redirects returns successfully with {redirects.Count} results.");
         }
     }
 }

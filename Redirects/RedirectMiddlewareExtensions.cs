@@ -4,9 +4,10 @@ public static class RedirectMiddlewareExtensions
 {
     public static void RegisterRedirectService(this WebApplicationBuilder builder, AppSettings settings)
     {
-        builder.Services.AddSingleton<IRedirectService, RedirectMockService>();
+        builder.Services.AddScoped<IRedirectRepository, RedirectRepository>();
+        builder.Services.AddSingleton<IRedirectService, RedirectUrlService>();
         builder.Services.AddHostedService(s => 
-            new RedirectUpdateService(s.GetService<IRedirectService>(), settings.RedirectUpdateIntervalSeconds));
+            new RedirectUpdateService(s, settings.RedirectUpdateIntervalSeconds));
     }
 
     public static IApplicationBuilder UseRedirectMiddleware(this IApplicationBuilder builder)

@@ -17,7 +17,7 @@ namespace CleanTemplate.Redirects
 
         public async Task Invoke(HttpContext context)
         {
-            Redirect redirect = _redirectService.GetRedirect(context.Request.Path);
+            Redirect? redirect = _redirectService.GetRedirect(context.Request.Path);
             if (redirect != null)
             {
                 context.Response.Redirect(redirect.Location(context.Request.Path), redirect.IsPermanant);
